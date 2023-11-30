@@ -24,7 +24,6 @@ void StepController::stepKeyDown(uint8_t i) {
 
 void StepController::stepKeyUp(uint8_t i) {
   stepKeyState[i] = false;
-  // XXX: TODO: unit test!
   if (_state.started && !shiftKeyState) {
     _state.tempSteps.setStep(i, false);
   }
