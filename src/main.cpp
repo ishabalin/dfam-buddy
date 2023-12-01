@@ -3,10 +3,10 @@
 #include <Encoder.h>
 #include <MIDI.h>
 
-#include "clock.h"
 #include "main.h"
 #include "sequencer.h"
 #include "step_controller.h"
+#include "transport.h"
 
 // MIDI_CREATE_INSTANCE(HardwareSerial, Serial, MIDI);
 MIDI_CREATE_DEFAULT_INSTANCE();
@@ -28,12 +28,20 @@ public:
   void closeGate() { digitalWrite(GATE_PIN, LOW); }
 };
 
+class SevenSegmentDisplayController : public DisplayController {
+public:
+  void update() { updateDisplay(); }
+};
+
 State state;
 StepController stepController(state);
-Clock clock;
 SystemTimeController timeController;
 GpioGateController gateController;
 Sequencer sequencer(state, timeController, gateController);
+SevenSegmentDisplayController displayController;
+Transport transport(state, sequencer, displayController);
+
+uint8_t clockDivider = 6;
 
 long encoderPosition = 0;
 
@@ -57,34 +65,18 @@ void selectMuxChannel(byte channel) {
 }
 
 void handleClock() {
-  // TODO: stop internal clock
-  // clock.stop();
-  // TODO: keep track of when last received external clock
-  sequencer.handleTick(micros());
-  // incrementClock();
+  uint32_t nowMicros = micros();
+  transport.onMidiClock(nowMicros);
 }
 
 void handleStart() {
-  // TODO: stop internal clock
-  // clock.stop();
-  // TODO: keep track of when last received external clock
-  startSequencer();
+  uint32_t nowMicros = micros();
+  transport.onMidiStart(nowMicros);
 }
 
 void handleStop() {
-  // TODO: stop internal clock
-  // clock.stop();
-  // TODO: keep track of when last received external clock
-  stopSequencer();
-}
-
-void startSequencer() {
-  state.started = true;
-}
-
-void stopSequencer() {
-  state.started = false;
-  sequencer.reset();
+  uint32_t nowMicros = micros();
+  transport.onMidiStop(nowMicros);
 }
 
 void updateLed(uint8_t index) {
@@ -159,26 +151,10 @@ void handleEncoder() {
     if (shiftKeyState) {
       sequencer.setSwing(sequencer.swing() + knobIncrement * incr * 10);
     } else {
-      float bpm = clock.bpm();
+      float bpm = transport.clock.bpm();
       bpm += knobIncrement * incr;
-      clock.bpm(bpm);
+      transport.clock.bpm(bpm);
     }
-    // switch (theState) {
-    //   case STOPPED | SHIFT:
-    //   case STARTED | SHIFT:
-    //     // float swing = sequencer.swing();
-    //     // swing += knobIncrement * incr * 10;
-    //     sequencer.setSwing(sequencer.swing() + knobIncrement * incr * 10);
-    //     // swing = max(swing, 50.0);
-    //     // swing = min(swing, 75.0);
-    //     break;
-    //   default:
-    //     float bpm = clock.bpm();
-    //     bpm += knobIncrement * incr;
-    //     clock.bpm(bpm);
-    //     // intervalMicros = pulseIntervalMicros(bpm);
-    //     break;
-    // }
     updateDisplay();
   }
 }
@@ -199,56 +175,90 @@ void handleSwitch(uint32_t nowMicros) {
       encoderSwitchState = value;
 
       if (encoderSwitchState) {
-        if (state.started) {
-          stopSequencer();
-          clock.stop();
-        } else {
-          startSequencer();
-          clock.start();
-        }
+        transport.toggleStartStop(nowMicros);
       }
     }
   }
 }
 
 void handleInternalClock(uint32_t nowMicros) {
-  if (clock.update(nowMicros)) {
-    // uint32_t nowMicros = micros();
+  // TODO: move to transport?
+  if (transport.clock.update(nowMicros)) {
     sequencer.handleTick(nowMicros);
-    // handleClockTick();
   }
-  // if (!started) {
-  //   return;
-  // }
-  // if (nextPulseMicros == 0) {
-  //   handleClock();
-  //   nextPulseMicros = nowMicros + intervalMicros;
-  // } else if (nowMicros > nextPulseMicros) {
-  //   handleClock();
-  //   nextPulseMicros += intervalMicros;
-  // }
+}
+
+void showBpm(float bpm) {
+  matrix.print(bpm, 1);
+  matrix.writeDisplay();
+}
+
+void showSwing(float swing) {
+  matrix.print(swing, 0);
+  matrix.writeDigitRaw(1, 0b10000000); // dot
+  matrix.writeDisplay();
+}
+
+void showClockDivider(uint8_t clockDivider) {
+  matrix.writeDigitRaw(0, 0);
+  matrix.writeDigitRaw(1, 0b01001001); // "X"
+  matrix.drawColon(true);
+  if (clockDivider > 9) {
+    matrix.writeDigitNum(3, clockDivider / 10, false);
+    matrix.writeDigitNum(4, clockDivider % 10, false);
+  } else {
+    matrix.writeDigitNum(3, clockDivider, false);
+    matrix.writeDigitRaw(4, 0);
+  }
+  matrix.writeDisplay();
 }
 
 void updateDisplay() {
   if (shiftKeyState) {
-    matrix.print(sequencer.swing(), 0);
-    matrix.writeDisplay();
+    showSwing(sequencer.swing());
+  } else if (state.syncMode == INT || state.syncMode == EXT_STOPPED) {
+    showBpm(transport.clock.bpm());
   } else {
-    matrix.print(clock.bpm(), 1);
-    matrix.writeDisplay();
+    showClockDivider(clockDivider);
   }
-  // switch (theState) {
-  //   case STOPPED | SHIFT:
-  //   case STARTED | SHIFT:
-  //     matrix.print(sequencer.swing(), 0);
-  //     matrix.writeDisplay();
-  //     break;
-  //   default:
-  //     // matrix.print(bpm, 1);
-  //     matrix.print(clock.bpm(), 1);
-  //     matrix.writeDisplay();
-  //     break;
-  // }
+}
+
+void processLeds(uint32_t nowMicros) {
+  if (nextLedUpdateTime == 0) {
+    updateLed(ledUpdateIndex);
+    nextLedUpdateTime = nowMicros + ledUpdateDelay;
+  } else if (nowMicros > nextLedUpdateTime) {
+    digitalWrite(MUX_PIN_EN, HIGH);
+    digitalWrite(MUX_PIN_SG, LOW);
+    ledUpdateIndex++;
+    if (ledUpdateIndex < STEPS) {
+      updateLed(ledUpdateIndex);
+      nextLedUpdateTime += ledUpdateDelay;
+    } else {
+      ledUpdateIndex = 0;
+      ledUpdateState = false;
+      nextLedUpdateTime = 0;
+      digitalWrite(MUX_PIN_EN, LOW);
+      pinMode(MUX_PIN_SG, INPUT_PULLUP);
+    }
+  }
+}
+
+void processKeys(uint32_t nowMicros) {
+  readKey(keyReadIndex);
+  if (nextKeyReadTime == 0) {
+    nextKeyReadTime = nowMicros + keyReadDelay;
+  } else if (nowMicros > nextKeyReadTime) {
+    keyReadIndex++;
+    nextKeyReadTime += keyReadDelay;
+    if (keyReadIndex > 7) {
+      keyReadIndex = 0;
+      nextKeyReadTime = 0;
+      ledUpdateState = true;
+      digitalWrite(MUX_PIN_EN, HIGH);
+      pinMode(MUX_PIN_SG, OUTPUT);
+    }
+  }
 }
 
 void setup() {
@@ -277,12 +287,9 @@ void setup() {
   matrix.begin(0x70);
   matrix.setBrightness(1);
 
+  sequencer.setClockDivider(clockDivider);
+
   updateDisplay();
-
-  sequencer.setClockDivider(6);
-
-  // clock.start();
-  // startSequencer();
 }
 
 void loop() {
@@ -292,44 +299,12 @@ void loop() {
   handleEncoder();
   handleSwitch(nowMicros);
   handleInternalClock(nowMicros);
-  // handleGate(nowMicros);
   sequencer.processGate(nowMicros);
 
   if (ledUpdateState) {
-    if (nextLedUpdateTime == 0) {
-      updateLed(ledUpdateIndex);
-      nextLedUpdateTime = nowMicros + ledUpdateDelay;
-    } else if (nowMicros > nextLedUpdateTime) {
-      digitalWrite(MUX_PIN_EN, HIGH);
-      digitalWrite(MUX_PIN_SG, LOW);
-      ledUpdateIndex++;
-      if (ledUpdateIndex < STEPS) {
-        updateLed(ledUpdateIndex);
-        nextLedUpdateTime += ledUpdateDelay;
-      } else {
-        ledUpdateIndex = 0;
-        ledUpdateState = false;
-        nextLedUpdateTime = 0;
-        digitalWrite(MUX_PIN_EN, LOW);
-        pinMode(MUX_PIN_SG, INPUT_PULLUP);
-      }
-    }
+    processLeds(nowMicros);
   } else {
-    readKey(keyReadIndex);
-    if (nextKeyReadTime == 0) {
-      nextKeyReadTime = nowMicros + keyReadDelay;
-    } else if (nowMicros > nextKeyReadTime) {
-      keyReadIndex++;
-      nextKeyReadTime += keyReadDelay;
-      if (keyReadIndex > 7) {
-        keyReadIndex = 0;
-        nextKeyReadTime = 0;
-        ledUpdateState = true;
-        digitalWrite(MUX_PIN_EN, HIGH);
-        pinMode(MUX_PIN_SG, OUTPUT);
-      }
-    }
+    processKeys(nowMicros);
   }
   yield();
-  // delayMicroseconds(1);
 }

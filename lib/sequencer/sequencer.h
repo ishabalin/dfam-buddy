@@ -34,7 +34,7 @@ public:
   void setSwing(float value);
 
 protected:
-  // transport
+  // clock
   uint32_t ticks = 0;
   uint8_t clockDivider = 6;
   uint8_t pendingClockDivider = 6;

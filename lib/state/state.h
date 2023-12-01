@@ -24,9 +24,16 @@ private:
   uint8_t numStepsOn;
 };
 
+enum SyncMode {
+  INT,
+  EXT,
+  EXT_STOPPED,
+};
+
 struct State {
   // transport
   bool started = false;
+  SyncMode syncMode = INT;
   // steps
   Steps permSteps = Steps(true);
   Steps tempSteps = Steps(false);
@@ -34,6 +41,4 @@ struct State {
   int8_t activeStep = -1;
   // current DFAM step
   int8_t dfamStep = 0;
-  //   // global step counter, that doesn't wrap around
-  //   int8_t globalStep = -1;
 };

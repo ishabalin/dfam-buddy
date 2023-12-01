@@ -8,12 +8,6 @@
 
 #include "state.h"
 
-// enum StepsMode {
-//   DFAM_STEP,
-//   ACTIVE_STEP,
-//   EDIT_STEPS,
-// };
-
 class StepController {
 public:
   StepController(State &state) : _state(state) {}
@@ -31,5 +25,4 @@ private:
   State &_state;
   bool shiftKeyState = false;
   bool stepKeyState[STEPS] = {false, false, false, false, false, false, false, false};
-  //   StepsMode stepsMode = DFAM_STEP;
 };

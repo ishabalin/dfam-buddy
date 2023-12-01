@@ -63,7 +63,8 @@ const uint32_t encoderSwitchDebounceDelay = 500;
 const float knobIncrement = 0.025;
 const uint32_t ledUpdateDelay = 2000;
 
+void showBpm(float);
+void showSwing(float);
+void showClockDivider(uint8_t);
 void updateDisplay();
 bool debounceKey(uint8_t);
-void startSequencer();
-void stopSequencer();
