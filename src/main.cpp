@@ -41,7 +41,8 @@ Sequencer sequencer(state, timeController, gateController);
 SevenSegmentDisplayController displayController;
 Transport transport(state, sequencer, displayController);
 
-uint8_t clockDivider = 6;
+uint8_t clockDividerValues[] = {1, 2, 3, 4, 6, 8, 12, 24, 36, 48, 96};
+float clockDividerIndex = 4.0;
 
 long encoderPosition = 0;
 
@@ -150,10 +151,19 @@ void handleEncoder() {
     encoderPosition = newPosition;
     if (shiftKeyState) {
       sequencer.setSwing(sequencer.swing() + knobIncrement * incr * 10);
-    } else {
+    } else if (state.syncMode == INT || state.syncMode == EXT_STOPPED) {
       float bpm = transport.clock.bpm();
       bpm += knobIncrement * incr;
       transport.clock.bpm(bpm);
+    } else {
+      clockDividerIndex += knobIncrement * incr * 10;
+      if (clockDividerIndex < 0) {
+        clockDividerIndex = 0;
+      }
+      if (clockDividerIndex > sizeof(clockDividerValues) - 1) {
+        clockDividerIndex = sizeof(clockDividerValues) - 1;
+      }
+      sequencer.setClockDivider(clockDividerValues[int(clockDividerIndex)]);
     }
     updateDisplay();
   }
@@ -200,8 +210,8 @@ void showSwing(float swing) {
 }
 
 void showClockDivider(uint8_t clockDivider) {
-  matrix.writeDigitRaw(0, 0);
-  matrix.writeDigitRaw(1, 0b01001001); // "X"
+  matrix.writeDigitRaw(0, 0b01001001); // "X"
+  matrix.writeDigitRaw(1, 0);          // blank
   matrix.drawColon(true);
   if (clockDivider > 9) {
     matrix.writeDigitNum(3, clockDivider / 10, false);
@@ -219,7 +229,7 @@ void updateDisplay() {
   } else if (state.syncMode == INT || state.syncMode == EXT_STOPPED) {
     showBpm(transport.clock.bpm());
   } else {
-    showClockDivider(clockDivider);
+    showClockDivider(clockDividerValues[int(clockDividerIndex)]);
   }
 }
 
@@ -287,7 +297,7 @@ void setup() {
   matrix.begin(0x70);
   matrix.setBrightness(1);
 
-  sequencer.setClockDivider(clockDivider);
+  sequencer.setClockDivider(clockDividerValues[int(clockDividerIndex)]);
 
   updateDisplay();
 }
