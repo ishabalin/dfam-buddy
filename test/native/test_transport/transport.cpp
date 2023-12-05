@@ -46,10 +46,10 @@ void testInternalClock() {
   Sequencer sequencer = createSequencer(state);
   Transport transport(state, sequencer, displayController);
   TEST_ASSERT_FALSE(state.started);
-  TEST_ASSERT_EQUAL(INT, state.syncMode);
+  TEST_ASSERT_EQUAL(INTERNAL_CLOCK, state.syncMode);
   transport.toggleStartStop(0);
   TEST_ASSERT_TRUE(state.started);
-  TEST_ASSERT_EQUAL(INT, state.syncMode);
+  TEST_ASSERT_EQUAL(INTERNAL_CLOCK, state.syncMode);
 }
 
 void testExternalClockWithStart() {
@@ -57,10 +57,10 @@ void testExternalClockWithStart() {
   Sequencer sequencer = createSequencer(state);
   Transport transport(state, sequencer, displayController);
   TEST_ASSERT_FALSE(state.started);
-  TEST_ASSERT_EQUAL(INT, state.syncMode);
+  TEST_ASSERT_EQUAL(INTERNAL_CLOCK, state.syncMode);
   transport.onMidiStart(0);
   TEST_ASSERT_TRUE(state.started);
-  TEST_ASSERT_EQUAL(EXT, state.syncMode);
+  TEST_ASSERT_EQUAL(EXTERNAL_CLOCK, state.syncMode);
 }
 
 void testExternalClockWithoutStart() {
@@ -68,10 +68,10 @@ void testExternalClockWithoutStart() {
   Sequencer sequencer = createSequencer(state);
   Transport transport(state, sequencer, displayController);
   TEST_ASSERT_FALSE(state.started);
-  TEST_ASSERT_EQUAL(INT, state.syncMode);
+  TEST_ASSERT_EQUAL(INTERNAL_CLOCK, state.syncMode);
   transport.onMidiClock(0);
   TEST_ASSERT_TRUE(state.started);
-  TEST_ASSERT_EQUAL(EXT, state.syncMode);
+  TEST_ASSERT_EQUAL(EXTERNAL_CLOCK, state.syncMode);
 }
 
 void testExternalClockManualStop() {
@@ -79,13 +79,13 @@ void testExternalClockManualStop() {
   Sequencer sequencer = createSequencer(state);
   Transport transport(state, sequencer, displayController);
   TEST_ASSERT_FALSE(state.started);
-  TEST_ASSERT_EQUAL(INT, state.syncMode);
+  TEST_ASSERT_EQUAL(INTERNAL_CLOCK, state.syncMode);
   transport.onMidiStart(0);
   TEST_ASSERT_TRUE(state.started);
-  TEST_ASSERT_EQUAL(EXT, state.syncMode);
+  TEST_ASSERT_EQUAL(EXTERNAL_CLOCK, state.syncMode);
   transport.toggleStartStop(0);
   TEST_ASSERT_FALSE(state.started);
-  TEST_ASSERT_EQUAL(EXT_STOPPED, state.syncMode);
+  TEST_ASSERT_EQUAL(EXTERNAL_CLOCK_FORCE_STOP, state.syncMode);
 }
 
 int main(int argc, char **argv) {

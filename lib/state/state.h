@@ -25,15 +25,15 @@ private:
 };
 
 enum SyncMode {
-  INT,
-  EXT,
-  EXT_STOPPED,
+  INTERNAL_CLOCK,
+  EXTERNAL_CLOCK,
+  EXTERNAL_CLOCK_FORCE_STOP,
 };
 
 struct State {
   // transport
   bool started = false;
-  SyncMode syncMode = INT;
+  SyncMode syncMode = INTERNAL_CLOCK;
   // steps
   Steps permSteps = Steps(true);
   Steps tempSteps = Steps(false);

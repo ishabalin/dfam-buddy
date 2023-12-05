@@ -2,8 +2,8 @@
 
 void Transport::onMidiStart(uint32_t micros) {
   switch (_state.syncMode) {
-    case INT:
-      _state.syncMode = EXT;
+    case INTERNAL_CLOCK:
+      _state.syncMode = EXTERNAL_CLOCK;
       clock.stop();
       _displayController.update();
       break;
@@ -15,8 +15,10 @@ void Transport::onMidiStart(uint32_t micros) {
 }
 
 void Transport::onMidiStop(uint32_t micros) {
-  if (_state.syncMode == EXT_STOPPED) {
-    _state.syncMode = INT;
+  if (_state.syncMode == EXTERNAL_CLOCK_FORCE_STOP) {
+    // after being manually stopped and receiving
+    // stop by MIDI, switch to internal clock mode
+    _state.syncMode = INTERNAL_CLOCK;
     _displayController.update();
   }
   clock.stop();
@@ -25,11 +27,13 @@ void Transport::onMidiStop(uint32_t micros) {
 
 void Transport::onMidiClock(uint32_t micros) {
   switch (_state.syncMode) {
-    case EXT_STOPPED:
+    case EXTERNAL_CLOCK_FORCE_STOP:
+      // after being manually stopped ignore MIDI clock
       return;
       break;
-    case INT:
-      _state.syncMode = EXT;
+    case INTERNAL_CLOCK:
+      // switch to external clock mode
+      _state.syncMode = EXTERNAL_CLOCK;
       clock.stop();
       _displayController.update();
       if (!_state.started) {
@@ -43,8 +47,9 @@ void Transport::onMidiClock(uint32_t micros) {
 void Transport::toggleStartStop(uint32_t micros) {
 
   if (_state.started) {
-    if (_state.syncMode == EXT) {
-      _state.syncMode = EXT_STOPPED;
+    if (_state.syncMode == EXTERNAL_CLOCK) {
+      // manually stopped while in external clock mode
+      _state.syncMode = EXTERNAL_CLOCK_FORCE_STOP;
       _displayController.update();
     }
     clock.stop();
@@ -52,8 +57,9 @@ void Transport::toggleStartStop(uint32_t micros) {
   } else {
     _sequencer.reset();
     clock.start();
-    if (_state.syncMode != INT) {
-      _state.syncMode = INT;
+    if (_state.syncMode != INTERNAL_CLOCK) {
+      // after being manually started switch to internal clock mode
+      _state.syncMode = INTERNAL_CLOCK;
       _displayController.update();
     }
     _state.started = true;
