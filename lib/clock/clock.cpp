@@ -16,6 +16,24 @@ uint32_t pulseIntervalMicros(float bpm) {
   return (uint32_t)intervalMicros;
 }
 
+uint8_t getClockDivider(uint8_t index) {
+  if (index >= clockDividersCount) {
+    // fall back
+    index = 3;
+  }
+  return clockDividers[index];
+}
+
+uint8_t getClockDividerStepsPerNote(uint8_t index) {
+  uint8_t divider = getClockDivider(index);
+  uint8_t stepsPerBar = ((24 * 4) / divider);
+  bool triplet = ((1 < divider) && (divider < 96) && (stepsPerBar % 3 == 0));
+  if (triplet) {
+    stepsPerBar = TRIPLET | (stepsPerBar / 3 * 2);
+  }
+  return stepsPerBar;
+}
+
 void Clock::start() {
   started = true;
   nextPulseMicros = 0;

@@ -8,6 +8,13 @@
 
 uint32_t beatIntervalMicros(float);
 uint32_t pulseIntervalMicros(float);
+uint8_t getClockDivider(uint8_t);
+uint8_t getClockDividerStepsPerNote(uint8_t);
+
+const uint8_t clockDividers[] = {2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 96};
+const uint8_t clockDividersCount = sizeof(clockDividers);
+
+#define TRIPLET 0b10000000
 
 class Clock {
 public:

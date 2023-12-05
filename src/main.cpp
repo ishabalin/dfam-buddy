@@ -41,8 +41,7 @@ Sequencer sequencer(state, timeController, gateController);
 SevenSegmentDisplayController displayController;
 Transport transport(state, sequencer, displayController);
 
-uint8_t clockDividerValues[] = {1, 2, 3, 4, 6, 8, 12, 24, 36, 48, 96};
-float clockDividerIndex = 4.0;
+float clockDividerIndex = 3.0;
 
 long encoderPosition = 0;
 
@@ -160,10 +159,10 @@ void handleEncoder() {
       if (clockDividerIndex < 0) {
         clockDividerIndex = 0;
       }
-      if (clockDividerIndex > sizeof(clockDividerValues) - 1) {
-        clockDividerIndex = sizeof(clockDividerValues) - 1;
+      if (clockDividerIndex > clockDividersCount - 1) {
+        clockDividerIndex = clockDividersCount - 1;
       }
-      sequencer.setClockDivider(clockDividerValues[int(clockDividerIndex)]);
+      sequencer.setClockDivider(clockDividers[int(clockDividerIndex)]);
     }
     updateDisplay();
   }
@@ -209,16 +208,21 @@ void showSwing(float swing) {
   matrix.writeDisplay();
 }
 
-void showClockDivider(uint8_t clockDivider) {
-  matrix.writeDigitRaw(0, 0b01001001); // "X"
-  matrix.writeDigitRaw(1, 0);          // blank
-  matrix.drawColon(true);
-  if (clockDivider > 9) {
-    matrix.writeDigitNum(3, clockDivider / 10, false);
-    matrix.writeDigitNum(4, clockDivider % 10, false);
+void showClockDivider(uint8_t index) {
+  matrix.writeDigitRaw(0, 0); // blank
+  // matrix.writeDigitRaw(0, 0b01001001); // "X"
+  // matrix.writeDigitRaw(0, 0b01010010); // "/" slash
+  uint8_t stepsPerNote = getClockDividerStepsPerNote(index);
+  bool triplet = (stepsPerNote & TRIPLET) != 0;
+  stepsPerNote = stepsPerNote & ~TRIPLET;
+  if (stepsPerNote > 9) {
+    matrix.writeDigitNum(1, stepsPerNote / 10, false);
+    matrix.writeDigitNum(3, stepsPerNote % 10, false);
+    matrix.writeDigitRaw(4, triplet ? 0b01111000 : 0);
   } else {
-    matrix.writeDigitNum(3, clockDivider, false);
-    matrix.writeDigitRaw(4, 0);
+    matrix.writeDigitRaw(1, 0);
+    matrix.writeDigitNum(3, stepsPerNote, false);
+    matrix.writeDigitRaw(4, triplet ? 0b01111000 : 0);
   }
   matrix.writeDisplay();
 }
@@ -229,7 +233,7 @@ void updateDisplay() {
   } else if (state.syncMode == INTERNAL_CLOCK || state.syncMode == EXTERNAL_CLOCK_FORCE_STOP) {
     showBpm(transport.clock.bpm());
   } else {
-    showClockDivider(clockDividerValues[int(clockDividerIndex)]);
+    showClockDivider(int(clockDividerIndex));
   }
 }
 
@@ -297,7 +301,7 @@ void setup() {
   matrix.begin(0x70);
   matrix.setBrightness(1);
 
-  sequencer.setClockDivider(clockDividerValues[int(clockDividerIndex)]);
+  sequencer.setClockDivider(clockDividers[int(clockDividerIndex)]);
 
   updateDisplay();
 }
