@@ -151,7 +151,7 @@ void handleEncoder() {
     encoderPosition = newPosition;
     if (shiftKeyState) {
       sequencer.setSwing(sequencer.swing() + knobIncrement * incr * 10);
-    } else if (state.syncMode == INT || state.syncMode == EXT_STOPPED) {
+    } else if (state.syncMode == INTERNAL_CLOCK || state.syncMode == EXTERNAL_CLOCK_FORCE_STOP) {
       float bpm = transport.clock.bpm();
       bpm += knobIncrement * incr;
       transport.clock.bpm(bpm);
@@ -226,7 +226,7 @@ void showClockDivider(uint8_t clockDivider) {
 void updateDisplay() {
   if (shiftKeyState) {
     showSwing(sequencer.swing());
-  } else if (state.syncMode == INT || state.syncMode == EXT_STOPPED) {
+  } else if (state.syncMode == INTERNAL_CLOCK || state.syncMode == EXTERNAL_CLOCK_FORCE_STOP) {
     showBpm(transport.clock.bpm());
   } else {
     showClockDivider(clockDividerValues[int(clockDividerIndex)]);
