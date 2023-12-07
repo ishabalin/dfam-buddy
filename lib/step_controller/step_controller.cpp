@@ -16,6 +16,10 @@ void StepController::stepKeyDown(uint8_t i) {
   if (shiftKeyState) {
     _state.permSteps.toggleStep(i);
   } else if (_state.started) {
+    if (!_state.tempSteps.active()) {
+      // entering step jump mode, sync steps
+      _state.tempSteps.activeStep = _state.permSteps.activeStep;
+    }
     _state.tempSteps.setStep(i, true);
   } else {
     _state.dfamStep = i;

@@ -77,11 +77,44 @@ void testTempStepsOnShiftUp() {
   }
 }
 
+void testTempStepsSync() {
+  // when entering step jump mode, temp steps must sync with perm steps
+
+  State state;
+  state.started = true;
+  StepController stepController = StepController(state);
+  // "advance" perm steps
+  state.permSteps.activeStep = 5;
+
+  TEST_ASSERT_EQUAL(-1, state.tempSteps.activeStep);
+  // set temp steps
+  for (int i = 5; i < 7; i++) {
+    stepController.stepKeyDown(i);
+  }
+  TEST_ASSERT_EQUAL(5, state.tempSteps.activeStep);
+
+  // release keys
+  for (int i = 5; i < 7; i++) {
+    stepController.stepKeyUp(i);
+  }
+  TEST_ASSERT_EQUAL(5, state.tempSteps.activeStep);
+
+  // "advance" perm steps
+  state.permSteps.activeStep = 3;
+
+  // set temp steps
+  for (int i = 5; i < 7; i++) {
+    stepController.stepKeyDown(i);
+  }
+  TEST_ASSERT_EQUAL(3, state.tempSteps.activeStep);
+}
+
 int main(int argc, char **argv) {
   UNITY_BEGIN();
   RUN_TEST(testEditPermStep);
   RUN_TEST(testEditTempStep);
   RUN_TEST(testSetDfamStep);
   RUN_TEST(testTempStepsOnShiftUp);
+  RUN_TEST(testTempStepsSync);
   UNITY_END();
 }

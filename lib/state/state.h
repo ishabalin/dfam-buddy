@@ -18,6 +18,7 @@ public:
   void setStep(uint8_t, bool);
   bool getStep(uint8_t);
   void advance();
+  bool active() { return numStepsOn > 0; }
 
 private:
   bool steps[STEPS];
