@@ -44,6 +44,7 @@ Transport transport(state, sequencer, displayController);
 float clockDividerIndex = 3.0;
 
 long encoderPosition = 0;
+uint32_t encoderUpdateTime = 0;
 
 int8_t ledUpdateIndex = 0;
 uint32_t nextLedUpdateTime = 0;
@@ -146,13 +147,28 @@ bool debounceShiftKey(uint32_t nowMicros) {
 void handleEncoder() {
   long newPosition = knob.read();
   if (newPosition != encoderPosition) {
+    uint32_t nowMicros = micros();
+    float accel = 1.0;
+    if (encoderUpdateTime > 0) {
+      uint32_t delta = nowMicros - encoderUpdateTime;
+      if (delta < 2500) {
+        accel = 10.0;
+      }
+    }
+    encoderUpdateTime = nowMicros;
     long incr = newPosition - encoderPosition;
     encoderPosition = newPosition;
     if (shiftKeyState) {
       sequencer.setSwing(sequencer.swing() + knobIncrement * incr * 10);
     } else if (state.syncMode == INTERNAL_CLOCK || state.syncMode == EXTERNAL_CLOCK_FORCE_STOP) {
       float bpm = transport.clock.bpm();
-      bpm += knobIncrement * incr;
+      bpm += knobIncrement * incr * accel;
+      if (bpm < 50.0) {
+        bpm = 50.0;
+      }
+      if (bpm > 1000.0) {
+        bpm = 1000.0;
+      }
       transport.clock.bpm(bpm);
     } else {
       clockDividerIndex += knobIncrement * incr * 10;
