@@ -28,6 +28,7 @@ void Sequencer::handleTick(uint32_t micros) {
     advance(micros);
   }
   ticks += 1;
+  _state.offStep = (ticks >= clockDivider / 2);
   if (ticks == clockDivider) {
     ticks = 0;
     clockDivider = pendingClockDivider;

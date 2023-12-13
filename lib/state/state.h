@@ -18,7 +18,7 @@ public:
   void setStep(uint8_t, bool);
   bool getStep(uint8_t);
   void advance();
-  bool active() { return numStepsOn > 0; }
+  uint8_t length() { return numStepsOn; }
 
 private:
   bool steps[STEPS];
@@ -42,4 +42,5 @@ struct State {
   int8_t activeStep = -1;
   // current DFAM step
   int8_t dfamStep = 0;
+  bool offStep = false;
 };
