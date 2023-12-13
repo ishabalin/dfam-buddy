@@ -33,6 +33,10 @@ public:
   void update() { updateDisplay(); }
 };
 
+AdvanceDirection *direction[] = {new Backward(), new Forward()};
+uint8_t directionCount = 2;
+float directionIndex = 1.0;
+
 State state;
 StepController stepController(state);
 SystemTimeController timeController;
@@ -159,7 +163,15 @@ void handleEncoder() {
     long incr = newPosition - encoderPosition;
     encoderPosition = newPosition;
     if (shiftKeyState) {
-      sequencer.setSwing(sequencer.swing() + knobIncrement * incr * 10);
+      // sequencer.setSwing(sequencer.swing() + knobIncrement * incr * 10);
+      directionIndex += knobIncrement * incr * 10;
+      if (directionIndex < 0) {
+        directionIndex = 0;
+      }
+      if (directionIndex > directionCount - 1) {
+        directionIndex = directionCount - 1;
+      }
+      sequencer.direction = direction[int(directionIndex)];
     } else if (state.syncMode == INTERNAL_CLOCK || state.syncMode == EXTERNAL_CLOCK_FORCE_STOP) {
       float bpm = transport.clock.bpm();
       bpm += knobIncrement * incr * accel;
@@ -243,9 +255,30 @@ void showClockDivider(uint8_t index) {
   matrix.writeDisplay();
 }
 
+void showSequencerDirection(uint8_t index) {
+  if (index == 0) {
+    matrix.writeDigitRaw(0, 0b01100000); // "2"
+    matrix.writeDigitRaw(1, 0b00011000); // "1"
+    matrix.writeDigitRaw(3, 0b01100000); // "2"
+    matrix.writeDigitRaw(4, 0b00011000); // "1"
+  } else if (index == 1) {
+    matrix.writeDigitRaw(0, 0b00001100); // "1"
+    matrix.writeDigitRaw(1, 0b01000010); // "2"
+    matrix.writeDigitRaw(3, 0b00001100); // "1"
+    matrix.writeDigitRaw(4, 0b01000010); // "2"
+  } else {
+    matrix.writeDigitRaw(0, 0b00001100); // "1"
+    matrix.writeDigitRaw(1, 0b01000010); // "2"
+    matrix.writeDigitRaw(3, 0b01100000); // "2"
+    matrix.writeDigitRaw(4, 0b00011000); // "1"
+  }
+  matrix.writeDisplay();
+}
+
 void updateDisplay() {
   if (shiftKeyState) {
-    showSwing(sequencer.swing());
+    showSequencerDirection(int(directionIndex));
+    // showSwing(sequencer.swing());
   } else if (state.syncMode == INTERNAL_CLOCK || state.syncMode == EXTERNAL_CLOCK_FORCE_STOP) {
     showBpm(transport.clock.bpm());
   } else {
@@ -318,6 +351,7 @@ void setup() {
   matrix.setBrightness(1);
 
   sequencer.setClockDivider(clockDividers[int(clockDividerIndex)]);
+  sequencer.direction = direction[int(directionIndex)];
 
   updateDisplay();
 }

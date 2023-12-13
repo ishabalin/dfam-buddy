@@ -33,6 +33,8 @@ public:
   float swing() { return swing_; }
   void setSwing(float value);
 
+  AdvanceDirection *direction = nullptr;
+
 protected:
   // clock
   uint32_t ticks = 0;

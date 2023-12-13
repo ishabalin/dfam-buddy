@@ -1,5 +1,7 @@
 #include "state.h"
 
+Forward forward;
+
 void Steps::toggleStep(uint8_t i) {
   setStep(i, !getStep(i));
 }
@@ -15,12 +17,16 @@ bool Steps::getStep(uint8_t i) {
   return steps[i];
 }
 
-void Steps::advance() {
+void Steps::advance(AdvanceDirection *direction) {
   if (numStepsOn < 1) {
     activeStep = -1;
     return;
   }
   do {
-    activeStep = (activeStep + 1) % STEPS;
+    if (direction == nullptr) {
+      activeStep = forward.advance(activeStep);
+    } else {
+      activeStep = direction->advance(activeStep);
+    }
   } while (!steps[activeStep]);
 }

@@ -8,6 +8,49 @@
 
 #define STEPS 8
 
+class AdvanceDirection {
+public:
+  virtual int8_t advance(int8_t) = 0;
+};
+
+class Forward : public AdvanceDirection {
+public:
+  int8_t advance(int8_t step) {
+    step++;
+    if (step >= STEPS) {
+      step = 0;
+    }
+    return step;
+  }
+};
+
+class Backward : public AdvanceDirection {
+  int8_t advance(int8_t step) {
+    step--;
+    if (step < 0) {
+      step = STEPS - 1;
+    }
+    return step;
+  }
+};
+
+class PingPong : public AdvanceDirection {
+private:
+  int8_t direction = 1;
+
+public:
+  int8_t advance(int8_t step) {
+    step += direction;
+    if (step < 0 || step > STEPS - 1) {
+      direction = -direction;
+      step += direction;
+    }
+    return step;
+  }
+};
+
+extern Forward forward;
+
 class Steps {
 public:
   Steps(bool on) : steps{on, on, on, on, on, on, on, on}, numStepsOn(on ? STEPS : 0) {}
@@ -17,7 +60,7 @@ public:
   void toggleStep(uint8_t);
   void setStep(uint8_t, bool);
   bool getStep(uint8_t);
-  void advance();
+  void advance(AdvanceDirection *);
   uint8_t length() { return numStepsOn; }
 
 private:

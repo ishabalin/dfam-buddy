@@ -61,9 +61,9 @@ void Sequencer::advance(uint32_t micros) {
 
   // keep advancing permanent steps even when
   // temporary steps are active, for "step jump"
-  _state.permSteps.advance();
+  _state.permSteps.advance(direction);
   _state.activeStep = _state.permSteps.activeStep;
-  _state.tempSteps.advance();
+  _state.tempSteps.advance(direction);
   if (_state.tempSteps.activeStep >= 0) {
     _state.activeStep = _state.tempSteps.activeStep;
   }
